@@ -1,38 +1,55 @@
 <template>
 	<div class="details-container">
-		<h2 class="lessons">Lessons</h2>
-		<div class="lesson-number-container">
-			<div
-				v-on:click="getClickedLesson(number)"
-				v-bind:key="number.id"
-				v-bind:class="
-					number.id === clickedLessonId ? 'activeLessonNumber' : 'lesson-numbers'
-				"
-				v-for="number in lessonsList"
-			>
-				{{ number.lessonTitle.slice(-1) }}
+		<div class="lesson-container">
+			<h2 class="lessons">Lessons</h2>
+			<div class="lesson-number-container">
+				<div
+					v-on:click="getClickedLesson(number)"
+					v-bind:key="number.id"
+					v-bind:class="
+						number.id === clickedLessonId ? 'activeLessonNumber' : 'lesson-numbers'
+					"
+					v-for="number in lessonsList"
+				>
+					{{ number.lessonTitle.slice(-1) }}
+				</div>
 			</div>
+			<button class="exit-session-btn"><span> Exit Session </span></button>
 		</div>
-		<section class="objective-body" v-if="isData">
+
+		<section class="objective-body" v-if="isSelectedLessonData">
 			<aside class="menu-container">
 				<div
 					class="objective-container"
-					v-for="objective in selectedObjective[0]"
+					:class="
+						objectiveDone && objective.id === clickedObjectiveId
+							? 'doneBorder'
+							: objectiveNotDoing && objective.id === clickedObjectiveId
+							? 'notDoingBorder'
+							: objectiveNextClass && objective.id === clickedObjectiveId
+							? 'nextClassBorder'
+							: ''
+					"
+					v-for="objective in selectedLesson[0]"
 					v-bind:key="objective.id"
+					v-on:click="getObjectiveVideo(objective)"
 				>
 					<span class="objective-title">{{ objective.title }}</span>
 					<span class="objective-duration">({{ objective.duration }} mins)</span>
-					<i class="fas fa-check-circle fa-lg check-icon"></i>
-					<i class="fas fa-times-circle fa-lg cross-icon"></i>
-					<i class="fas fa-edit fa-lg edit-icon"></i>
+					<a class="check-icon" @click="done(objective.id)"
+						><i class="fas fa-check-circle fa-lg"></i
+					></a>
+					<a class="cross-icon" @click="notDoing()"
+						><i class="fas fa-times-circle fa-lg"></i
+					></a>
+					<a class="edit-icon" @click="nextClass()"><i class="fas fa-edit fa-lg"></i></a>
 				</div>
 			</aside>
 			<main class="video-container">
-				<div class="video-list">
+				<div class="video-list" v-on:click="playVideoInBG($event)">
 					<iframe
-						v-bind:key="objective.id"
-						v-for="objective in selectedObjective[0]"
-						v-bind:src="objective.objectiveVideosDetails[0].url"
+						allow="fullscreen"
+						v-bind:src="selectedObjectiveURL"
 						frameborder="0"
 					></iframe>
 				</div>
@@ -46,19 +63,25 @@
 		name: "LessonDetails",
 		data() {
 			return {
-				isData: false,
+				isSelectedLessonData: false,
 				clickedLessonId: "",
-				selectedObjective: {},
+				clickedObjectiveId: "",
+				selectedLesson: {},
+				selectedObjectiveURL: [],
 				lessonsList: [],
+				objectiveDone: false,
+				objectiveNotDoing: false,
+				objectiveNextClass: false,
 				filteredLessonsList: []
 			};
 		},
+
 		methods: {
 			getClickedLesson(event) {
 				const clickedLesson = JSON.parse(JSON.stringify(event));
 				this.clickedLessonId = clickedLesson.id;
 
-				this.selectedObjective = this.details
+				this.selectedLesson = this.details
 					.filter(item => item.id === clickedLesson.id)
 					.map(o =>
 						o.objectiveDetails.map(objective => {
@@ -70,9 +93,36 @@
 							};
 						})
 					);
-				if (this.selectedObjective) {
-					this.isData = true;
+				if (this.selectedLesson) {
+					this.isSelectedLessonData = true;
 				}
+			},
+			getObjectiveVideo(objective) {
+				const clickedObjective = objective;
+				this.clickedObjectiveId = clickedObjective.id;
+				objective.objectiveDone = this.objectiveDone;
+				this.selectedObjectiveURL = objective.objectiveVideosDetails.map(el => el.url);
+			},
+			done(selectedObjectiveId) {
+				const copy = this.selectedLesson.map(item =>
+					item.map(el => {
+						if (el.id === selectedObjectiveId) {
+							this.objectiveDone = true;
+						}
+						return this.objectiveDone;
+					})
+				);
+				console.log(JSON.parse(JSON.stringify(copy)));
+			},
+			notDoing() {
+				this.objectiveNotDoing = !this.objectiveNotDoing;
+				console.log(this.objectiveNotDoing);
+				return this.objectiveNotDoing;
+			},
+			nextClass() {
+				this.objectiveNextClass = !this.objectiveNextClass;
+				console.log(this.objectiveNextClass);
+				return this.objectiveNextClass;
 			}
 		},
 		watch: {
@@ -81,10 +131,10 @@
 					item.objectiveDetails.forEach(el =>
 						el.objectiveVideosDetails.forEach(objective => {
 							/* ---------------------------------------------------------------------
-            Vimeo link returned by the API doesn't allow to display it in a url.
-            Removing the string after the last backslash in the URL and replacing
-            'vimeo.com' with 'player.vimeo.com/video' to correctly embed the videos.
-            ------------------------------------------------------------------------ */
+	           Vimeo link returned by the API doesn't allow to display it in a url.
+	           Removing the string after the last backslash in the URL and replacing
+	           'vimeo.com' with 'player.vimeo.com/video' to correctly embed the videos.
+	           ------------------------------------------------------------------------ */
 							const regex = /vimeo[.]com/gi;
 							objective.url = objective.url
 								.substring(0, objective.url.lastIndexOf("/") + 1)
@@ -95,6 +145,7 @@
 				this.lessonsList = this.details;
 			}
 		},
+
 		props: ["details"]
 	};
 </script>
@@ -151,8 +202,19 @@
 		color: #017296;
 		left: 150px;
 	}
+	.doneBorder {
+		border: 3px solid #81e26e;
+	}
+	.notDoingBorder {
+		border: 3px solid #f05228;
+	}
+	.nextClassBorder {
+		border: 3px solid #017296;
+	}
 	.objective-body {
 		display: flex;
+		margin-left: -6.5em;
+		margin-top: 1em;
 	}
 	.menu-container {
 		background: #ffd05b;
@@ -181,18 +243,21 @@
 		margin-left: 1.5em;
 	}
 	.details-container {
-		margin-top: -1em;
+		margin-left: 7em;
+	}
+	.lesson-container {
+		display: inline;
 	}
 	.lessons {
 		display: inline-block;
 		font-weight: bold;
-		font-size: 1.8em;
+		font-size: 1.5em;
 	}
 	.lesson-number-container {
 		margin-left: 1em;
 		align-items: center;
 		display: inline-flex;
-		width: 500px;
+		width: 400px;
 		height: 100px;
 	}
 	.activeLessonNumber {
@@ -204,7 +269,7 @@
 		font-weight: bold;
 		box-shadow: 0px 4px rgba(0, 0, 0, 0.2), 1px 3px rgba(0, 0, 0, 0.1);
 		border-radius: 50%;
-		margin-left: 1em;
+		margin-left: 0.5em;
 		height: 42px;
 		font-size: 1.7em;
 		width: 50px;
@@ -220,8 +285,24 @@
 	}
 	.video-list {
 		width: 50%;
-		height: 10%;
+		height: 15%;
 		margin: 2em 2em 1em 2em;
-		background: blue;
+	}
+	.video-background {
+		position: relative;
+		z-index: 2;
+		bottom: 10%;
+		left: -6%;
+	}
+	.exit-session-btn {
+		box-shadow: 5px 5px 5px 0px rgba(0, 0, 0, 0.2), -1px -11px 20px 0px rgba(0, 0, 0, 0.1);
+		padding: 0.7em 1em;
+		color: white;
+		margin-left: 3.2em;
+		font-weight: bold;
+		background: #c92b2b;
+		font-size: 1em;
+		cursor: pointer;
+		outline: 0;
 	}
 </style>
