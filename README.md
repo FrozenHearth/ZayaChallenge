@@ -16,4 +16,4 @@ An e-learning interface built using Vue for Zaya Learning Labs' front-end engine
 
 `vue serve`
 
-4. Open `localhost:8080` in a new tab in your browser.
+4. Open `localhost:8080` in a new tab in your browser to view the UI.
