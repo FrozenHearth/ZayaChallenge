@@ -1,4 +1,4 @@
-# ZayaChallenge
+# ZayaInterface
 
 An e-learning interface built using Vue for Zaya Learning Labs' front-end engineer hiring assignment.
 
