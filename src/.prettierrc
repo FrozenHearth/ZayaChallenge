@@ -1,6 +1,7 @@
 {
-  "jsxBracketSameLine": true,
-  "vueIndentScriptAndStyle": true,
-  "printWidth": 90,
-  "useTabs": true
+	"jsxBracketSameLine": true,
+	"vueIndentScriptAndStyle": true,
+	"printWidth": 90,
+	"useTabs": true,
+	"quoteProps": "preserve"
 }
